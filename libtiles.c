@@ -349,7 +349,7 @@ image_ppm *compare(image_ppm *image, tiles_array *tiles)
   image_ppm *image_out;
   image_out = image_allocation(1);
   image_out->type = string_allocation(3);
-  image_out->matrix = matrix_allocation(image->height, image->width);
+  image_out->matrix = matrix_allocation(image->width, image->height);
 
   strcpy(image_out->type, image->type);
   image_out->width = image->width;
