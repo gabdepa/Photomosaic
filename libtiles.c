@@ -9,10 +9,8 @@
 #include "libtiles.h"
 
 #define DIMENSION 2
-#define RGB 1
+#define RGB 255
 #define MAX_ARRAY 2048
-#define WIDTH_MAX 128
-#define HEIGHT_MAX 1080
 
 image_ppm *image_allocation(int size)
 {
@@ -72,23 +70,6 @@ pixel **matrix_allocation(int width, int height)
   return grade;
 }
 
-void read_image_rgb(FILE *file, image_ppm *image)
-{
-  int r, g, b;
-  for (int i = 0; i < image->height; i++)
-    for (int j = 0; j < image->width; j++)
-    {
-      if (fscanf(file, "%d %d %d", &r, &g, &b) != 3)
-      {
-        perror("Erro ao ler matriz.\n");
-        exit(1);
-      }
-      image->matrix[i][j].red = r;
-      image->matrix[i][j].green = g;
-      image->matrix[i][j].blue = b;
-    }
-}
-
 void comments(FILE *file)
 {
   char hashbang;
@@ -103,179 +84,6 @@ void comments(FILE *file)
   ungetc(hashbang,file);
 }
 
-image_ppm *open_image(char *filename)
-{
-  FILE *file;
-  image_ppm *image;
-  image = image_allocation(1);
-
-  file = fopen(filename, "r");
-  if (!file)
-  {
-    perror("Erro ao abrir arquivo da imagem lala\n");
-    exit(1);
-  }
-
-  image->type = string_allocation(3);
-  if (!fgets(image->type, 3, file)) // Verifica Tipo da imagem
-  {
-    perror("Erro ao utilizar fgets.\n");
-    exit(1);
-  }
-  comments(file);
-
-  if (fscanf(file, "%d %d", &image->width, &image->height) != DIMENSION)
-  {
-    perror("Erro ao ler dimensões da imagem.\n");
-    exit(1);
-  }
-  image->matrix = matrix_allocation(image->width, image->height);
-  comments(file);
-
-  if (fscanf(file, "%d", &image->max_rgb) != RGB)
-  {
-    perror("Erro ao ler dimensões índice RGB.\n");
-    exit(1);
-  }
-  comments(file);
-
-  if (strcmp(image->type, "P6") == 0)
-  {
-    if (fread(image->matrix[0], image->width * 3, image->height, file) != image->height)
-    {
-      perror("Erro ao ler matriz.\n");
-      exit(1);
-    }
-  }
-  else
-    read_image_rgb(file, image);
-
-  fclose(file);
-  return image;
-}
-
-void read_tile_matrix(FILE *file, tiles_array* tile)
-{
-  int width = tile->array[0].width;
-  int height = tile->array[0].height;
-
-  tile->array[tile->size].matrix = matrix_allocation(width, height);
-  if (strcmp(tile->array[tile->size].type, "P6") == 0)
-  {
-    if (fread(tile->array[tile->size].matrix[0], width * 3, height, file) != height )
-    {
-      perror("Erro ao ler matriz lalalal.\n");
-      exit(1);
-    }
-  }
-  else
-  {
-    read_image_rgb(file, &tile->array[tile->size]);
-  }
-}
-
-void open_tile(char *filename, tiles_array *array_images)
-{
-  FILE *file;
-  array_images->array[array_images->size].type = string_allocation( 3 );;
-
-
-  file = fopen(filename, "r");
-  if (!file)
-  {
-    perror("Erro ao abrir arquivo da pastilha.\n");
-    exit(1);
-  }
-
-  if (! fgets(array_images->array[array_images->size].type, 3, file)) // Verifica Tipo da imagem
-  {
-    perror("Erro ao utilizar fgets.\n");
-    exit(1);
-  }
-  comments(file);
-
-  if (fscanf(file, "%d %d", &array_images->array[array_images->size].width, &array_images->array[array_images->size].height) != DIMENSION)
-  {
-    perror("Erro ao ler dimensões da imagem.\n");
-    exit(1);
-  }
-  comments(file);
-
-  if (fscanf(file, "%d", &array_images->array[array_images->size].max_rgb) != RGB)
-  {
-    perror("Erro ao ler dimensões índice RGB.\n");
-    exit(1);
-  }
-  
-  read_tile_matrix(file, array_images);
-  fclose(file);
-}
-
-tiles_array *load_tiles(char *directory)
-{
-  DIR *dir_stream;
-  char *filename;
-  struct dirent *dir_entry;
-  tiles_array *array_images;
-  int mult;
-
-  array_images = tiles_array_allocation(1);
-  array_images->array = image_allocation(MAX_ARRAY);
-
-  array_images->size = 0;
-  mult = 1;
-
-  filename = string_allocation(256);
-
-  dir_stream = opendir(directory);
-
-  while (1)
-  {
-    dir_entry = readdir(dir_stream); // Pega a próxima entrada do diretório
-    if (!dir_entry)                  // Se for NULL, encerra a varredura
-      break;
-    if (!strcmp(dir_entry->d_name, "."))
-      continue;
-    if (!strcmp(dir_entry->d_name, ".."))
-      continue;
-    strcpy(filename, directory);
-    strcat(filename, dir_entry->d_name);
-    open_tile(filename, array_images);
-    array_images->size++;
-    if (array_images->size >= MAX_ARRAY * mult)
-    {
-      mult += 1;
-      array_images->array = realloc(array_images->array, sizeof(image_ppm) * (MAX_ARRAY * mult));
-    }
-  }
-
-  (void)closedir(dir_stream);
-  return array_images;
-}
-
-void rgb_average_tiles(tiles_array *tile, int k, int l, int final_lin, int final_col)
-{
-  int sum_red, sum_blue, sum_green;
-  sum_blue = 0;
-  sum_green = 0;
-  sum_red = 0;
-
-  for (int n = 0; n < tile->size; n++)
-  {
-    for (int i = k; i < final_lin; i++)
-      for (int j = l; j < final_col; j++)
-      {
-        sum_red += tile->array[n].matrix[i][j].red;
-        sum_green += tile->array[n].matrix[i][j].green;
-        sum_blue += tile->array[n].matrix[i][j].blue;
-      }
-    tile->array[n].pixel_average_color.red = sum_red / (final_col * final_lin);
-    tile->array[n].pixel_average_color.green = sum_green / (final_col * final_lin);
-    tile->array[n].pixel_average_color.blue = sum_blue / (final_col * final_lin);
-  }
-}
-
-// VERIFICAR FUNÇÃO
 void rgb_average_image(image_ppm *image, int k, int l, int final_lin, int final_col)
 {
   int sum_red, sum_blue, sum_green;
@@ -295,18 +103,209 @@ void rgb_average_image(image_ppm *image, int k, int l, int final_lin, int final_
   image->pixel_average_color.blue = sum_blue / ((final_col - l) * (final_lin - k));
 }
 
-float delta_c_calculation(pixel* media, image_ppm* image)
+void rgb_average_tiles(tiles_array *tile, int k, int l, int final_lin, int final_col)
+{
+  int sum_red, sum_green, sum_blue;
+  sum_red = 0;
+  sum_green = 0;
+  sum_blue = 0;  
+
+  for (int n = 0; n < tile->size; n++)
+  {
+    for (int i = k; i < final_lin; i++)
+    {
+      for (int j = l; j < final_col; j++)
+      {
+        sum_red += tile->array[n].matrix[i][j].red;
+        sum_green += tile->array[n].matrix[i][j].green;
+        sum_blue += tile->array[n].matrix[i][j].blue;
+      }
+    }
+    tile->array[n].pixel_average_color.red = sum_red / (final_col * final_lin);
+    tile->array[n].pixel_average_color.green = sum_green / (final_col * final_lin);
+    tile->array[n].pixel_average_color.blue = sum_blue / (final_col * final_lin);
+  }
+}
+
+void read_image_rgb(FILE *file, image_ppm *image)
+{
+  int r, g, b;
+  for (int i = 0; i < image->height; i++)
+    for (int j = 0; j < image->width; j++)
+    {
+      if (fscanf(file, "%d %d %d ", &r, &g, &b) != 3)
+      {
+        perror("Erro ao ler matriz.\n");
+        exit(1);
+      }
+      image->matrix[i][j].red = r;
+      image->matrix[i][j].green = g;
+      image->matrix[i][j].blue = b;
+    }
+}
+
+image_ppm *open_image(char *filename)
+{
+  FILE *file;
+  image_ppm *image;
+  image = image_allocation(1);
+  image->type = string_allocation(3);
+
+  file = fopen(filename, "r");
+  if (!file)
+  {
+    perror("Erro ao abrir arquivo da imagem input\n");
+    exit(1);
+  }
+
+  if (!fgets(image->type, 3, file)) // Verifica Tipo da imagem
+  {
+    perror("Erro ao utilizar fgets na imagem input.\n");
+    exit(1);
+  }
+  comments(file);
+
+  if (fscanf(file, "%d %d", &image->width, &image->height) != DIMENSION)
+  {
+    perror("Erro ao ler dimensões da imagem input.\n");
+    exit(1);
+  }
+  comments(file);
+
+  if (fscanf(file, "%d", &image->max_rgb) != 1)
+  {
+    perror("Erro ao ler índice RGB da imgem input.\n");
+    exit(1);
+  }
+  comments(file);
+  image->matrix = matrix_allocation(image->width, image->height);
+
+  if (strcmp(image->type, "P6") == 0)
+  {
+    if (fread(image->matrix[0], image->width * 3, image->height, file) != image->height)
+    {
+      perror("Erro ao ler matriz da imagem input.\n");
+      exit(1);
+    }
+  }
+  else
+    read_image_rgb(file, image);
+
+  fclose(file);
+  return image;
+}
+
+void open_tile(char *filename, tiles_array *array_images)
+{
+  FILE *file;
+
+  file = fopen(filename, "r");
+  if (!file)
+  {
+    perror("Erro ao abrir arquivo de pastilhas.\n");
+    exit(1);
+  }
+
+  if (! fgets(array_images->array[array_images->size].type, 3, file)) // Verifica Tipo da imagem
+  {
+    perror("Erro ao utilizar fgets no tipo da pastilha.\n");
+    exit(1);
+  }
+  comments(file);
+
+  if (fscanf(file, "%d %d", &array_images->array[array_images->size].width, &array_images->array[array_images->size].height) != DIMENSION)
+  {
+    perror("Erro ao ler dimensões da imagem da pastilha.\n");
+    exit(1);
+  }
+  comments(file);
+
+  if (fscanf(file, "%d", &array_images->array[array_images->size].max_rgb) != 1)
+  {
+    perror("Erro ao ler índice RGB da pastilha.\n");
+    exit(1);
+  }
+  if (array_images->array[array_images->size].max_rgb != RGB)
+  {
+    perror("Erro no índice RGB da pastilha, diferente de 255.\n");
+    exit(1);
+  }
+
+  int width = array_images->array[array_images->size].width;
+  int height = array_images->array[array_images->size].height;
+  array_images->array[array_images->size].matrix = matrix_allocation(width, height);
+  if (strcmp(array_images->array[array_images->size].type, "P6") == 0)
+  {
+    if (fread(array_images->array[array_images->size].matrix[0], width * 3, height, file) != height )
+    {
+      perror("Erro ao ler matriz da pastilha.\n");
+      exit(1);
+    }
+  }
+  else
+    read_image_rgb(file, &array_images->array[array_images->size]);
+  
+  fclose(file);
+}
+
+tiles_array *load_tiles(char *directory)
+{
+  tiles_array *array_images;
+  array_images = tiles_array_allocation(1);
+  array_images->size = 0;
+  array_images->array = image_allocation(MAX_ARRAY);
+
+  DIR *dir_stream;
+  struct dirent *dir_entry;
+  char *filename;
+  int mult;
+  mult = 1;
+
+  filename = string_allocation(1024);
+  dir_stream = opendir(directory);
+  if (!dir_stream)
+  {
+    perror("Erro ao abrir diretório de pastilhas.\n");
+    exit(1);
+  }
+
+  while (1)
+  {
+    dir_entry = readdir(dir_stream); // Pega a próxima entrada do diretório
+    if (!dir_entry)                  // Se for NULL, encerra a varredura
+      break;
+    if (!strcmp(dir_entry->d_name, "."))
+      continue;
+    if (!strcmp(dir_entry->d_name, ".."))
+      continue;
+    strcpy(filename, directory);
+    strcat(filename, dir_entry->d_name);
+
+    array_images->array[array_images->size].type = string_allocation(3);
+    open_tile(filename, array_images);
+
+    array_images->size++;
+    if (array_images->size >= MAX_ARRAY * mult)
+    {
+      mult++;
+      array_images->array = realloc(array_images->array, sizeof(image_ppm) * (MAX_ARRAY * mult));
+    }
+  }
+  (void)closedir(dir_stream);
+  return array_images;
+}
+
+float delta_c_calculation(pixel media_tile, pixel media_image)
 {
   int red_delta, blue_delta, green_delta;
   float R, delta_c;
+  
+  red_delta = media_tile.red - media_image.red;
+  green_delta = media_tile.green - media_image.green;
+  blue_delta = media_tile.blue - media_image.blue;
+  R = (media_image.red + media_tile.red) / 2;
 
-  red_delta = media->red - image->pixel_average_color.red;
-  green_delta = media->green - image->pixel_average_color.green;
-  blue_delta = media->blue - image->pixel_average_color.blue;
-
-  R = (image->pixel_average_color.red + media->red) / 2;
-
-  delta_c = sqrt((2 + R/256)*pow(red_delta,2)+4*pow(green_delta,2)+(2 + (255 - R)/256)*pow(blue_delta,2));
+  delta_c = sqrt( ((2 + (R/256))*pow(red_delta,2)) + (4*pow(green_delta,2)) + ((2 + ((255 - R)/256)) * pow(blue_delta,2)) );
 
   return delta_c;
 }
@@ -314,13 +313,13 @@ float delta_c_calculation(pixel* media, image_ppm* image)
 void color_distance(image_ppm *image_out, image_ppm *image, tiles_array *tile, int line_ini, int col_ini, int line_final, int col_final)
 {
   float delta_c, min_delta_c;
-  int tile_index = 0;
-  min_delta_c = delta_c_calculation(&tile->array[0].pixel_average_color, image);
+  min_delta_c = delta_c_calculation(tile->array[0].pixel_average_color, image->pixel_average_color);
   
+  int tile_index = 0;
   // Calcula cor mais próxima e marca qual o índice no array de pastilhas da mesma
   for (int i = 1; i < tile->size; i++)
   {
-    delta_c = delta_c_calculation(&tile->array[i].pixel_average_color, image);    
+    delta_c = delta_c_calculation(tile->array[i].pixel_average_color, image->pixel_average_color);    
     if (delta_c < min_delta_c)
     {
       min_delta_c = delta_c;
@@ -348,7 +347,7 @@ image_ppm *compare(image_ppm *image, tiles_array *tiles)
   // Inicializa informações para o arquivo de saída image_out
   image_ppm *image_out;
   image_out = image_allocation(1);
-  image_out->type = string_allocation(3);
+  image_out->type = string_allocation(2);
   image_out->matrix = matrix_allocation(image->width, image->height);
 
   strcpy(image_out->type, image->type);
@@ -363,17 +362,17 @@ image_ppm *compare(image_ppm *image, tiles_array *tiles)
   {
     for (int j = 0; j < image_out->width; j += width_tiles)
     {
-      if ((i+height_tiles > image->height) && (j+width_tiles > image->width)) // Caso extremo, no qual o último bloco é menor e menos largo do que a pastilha
+      if ( (i+height_tiles > image->height) && (j+width_tiles > image->width) ) // Caso extremo, no qual o último bloco é menor e menos largo do que a pastilha
       {
         rgb_average_image(image, i, j, image->height, image->width);
         color_distance(image_out, image, tiles, i, j, image->height, image->width);
       }
-      else if ((i+height_tiles > image->height) && (j+width_tiles <= image->width)) // Caso em que altura restante da imagem é menor que a altura da pastilha
+      else if ( (i+height_tiles > image->height) && (j+width_tiles <= image->width) ) // Caso em que altura restante da imagem é menor que a altura da pastilha
       {
         rgb_average_image(image, i, j, image->height, j+width_tiles);
         color_distance(image_out, image, tiles, i, j, image->height, j+width_tiles);
       }
-      else if ((j+width_tiles > image->width) && (i+height_tiles <= image->height)) // Caso em que largura restante da imagem é menor que a largura da pastilha
+      else if ( (j+width_tiles > image->width) && (i+height_tiles <= image->height) ) // Caso em que largura restante da imagem é menor que a largura da pastilha
       {
         rgb_average_image(image, i, j, i+height_tiles, image->width);
         color_distance(image_out, image, tiles, i, j, i+height_tiles, image->width);

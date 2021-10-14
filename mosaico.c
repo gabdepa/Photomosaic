@@ -72,12 +72,12 @@ int main(int argc, char **argv)
 
   fprintf(stderr, "\nCalculando media do bloco de cor das pastilhas do dir %s\n", dir );
   rgb_average_tiles(tiles, 0, 0, tiles->array[0].height, tiles->array[0].width);
-
+  
   fprintf(stderr, "\nComparando %s com pastilhas do dir %s\n", image, dir );
   image_ppm *final_image;
   final_image = compare(image_in, tiles);
 
-  fprintf(stderr, "\nCriando imagem final  %s...\n", output );
+  fprintf(stderr, "\nCriando imagem final %s...\n", output );
   create_image_file(final_image, output);
 
   free(image);

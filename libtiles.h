@@ -11,10 +11,9 @@
 #include <unistd.h>
 
 #define DIMENSION 2
-#define RGB 1
+#define RGB 255
 #define MAX_ARRAY 2048
-#define WIDTH_MAX 128
-#define HEIGHT_MAX 1080
+
 
 typedef struct pixel
 {
@@ -49,21 +48,21 @@ char *string_allocation(int size);
 
 pixel **matrix_allocation(int width, int height);
 
-void read_image_rgb(FILE *file, image_ppm *image);
-
 void comments(FILE *file);
-
-image_ppm *open_image(char *filename);
-
-void read_tile_matrix(FILE *file, tiles_array* tile);
-
-void open_tile(char *filename, tiles_array *tile);
-
-tiles_array *load_tiles(char *directory);
 
 void rgb_average_image(image_ppm *image, int k, int l, int final_lin, int final_col);
 
 void rgb_average_tiles(tiles_array *tile, int k, int l, int final_lin, int final_col);
+
+void read_image_rgb(FILE *file, image_ppm *image);
+
+image_ppm *open_image(char *filename);
+
+void open_tile(char *filename, tiles_array *array_images);
+
+tiles_array *load_tiles(char *directory);
+
+float delta_c_calculation(pixel media_tile, pixel media_image);
 
 void color_distance(image_ppm *image_out, image_ppm *image, tiles_array *tile, int line_ini, int col_ini, int line_final, int col_final);
 
