@@ -11,6 +11,9 @@
 #define DIMENSION 2
 #define RGB 255
 #define MAX_ARRAY 2048
+#define CORRECTION_TILE 1
+#define CORRECTION_IMAGE 1
+
 
 image_ppm *image_allocation(int size)
 {
@@ -70,6 +73,19 @@ pixel **matrix_allocation(int width, int height)
   return grade;
 }
 
+pixel *RGB_pixel_allocation(int size)
+{
+  pixel *grade;
+
+  grade = malloc(size * sizeof(pixel));
+  if (!grade)
+  {
+    perror("Erro ao alocar matriz\n");
+    exit(1);
+  }
+  return grade;
+}
+
 void comments(FILE *file)
 {
   char hashbang;
@@ -86,7 +102,7 @@ void comments(FILE *file)
 
 void rgb_average_image(image_ppm *image, int k, int l, int final_lin, int final_col)
 {
-  int sum_red, sum_blue, sum_green;
+  int sum_red, sum_blue, sum_green, red, green, blue;
   sum_blue = 0;
   sum_green = 0;
   sum_red = 0;
@@ -94,21 +110,45 @@ void rgb_average_image(image_ppm *image, int k, int l, int final_lin, int final_
   for (int i = k; i < final_lin; i++)
     for (int j = l; j < final_col; j++)
     {
-      sum_red += image->matrix[i][j].red;
-      sum_green += image->matrix[i][j].green;
-      sum_blue += image->matrix[i][j].blue;
+      red = image->matrix[i][j].red;
+      green = image->matrix[i][j].green;
+      blue = image->matrix[i][j].blue;
+
+      sum_red = sum_red + red;
+      sum_green = sum_green + green;
+      sum_blue = sum_green + blue;
     }
-  image->pixel_average_color.red = sum_red / ((final_col - l) * (final_lin - k));
-  image->pixel_average_color.green = sum_green / ((final_col - l) * (final_lin - k));
-  image->pixel_average_color.blue = sum_blue / ((final_col - l) * (final_lin - k));
+  image->pixel_average_color->red = sum_red / ((final_col - l) * (final_lin - k) * CORRECTION_IMAGE);
+  image->pixel_average_color->green = sum_green / ((final_col - l) * (final_lin - k) * CORRECTION_IMAGE);
+  image->pixel_average_color->blue = sum_blue / ((final_col - l) * (final_lin - k) * CORRECTION_IMAGE);
+  
+  FILE *file;
+  file = fopen("media_pixel_IMAGE.txt", "w");
+  if (!file)
+  {
+    perror("Erro ao criar arquivo.\n");
+    exit(1);
+  }
+  fprintf(file, "Red:%i Green:%i Blue:%i\n", image->pixel_average_color->red, image->pixel_average_color->green, image->pixel_average_color->blue);
+  fclose(file);
+
 }
 
+// CONTÉM ERRO NESSA FUNÇÃO
 void rgb_average_tiles(tiles_array *tile, int k, int l, int final_lin, int final_col)
 {
-  int sum_red, sum_green, sum_blue;
+  int sum_red, sum_blue, sum_green, red, green, blue;
   sum_red = 0;
   sum_green = 0;
   sum_blue = 0;  
+
+  // FILE *file;
+  // file = fopen("media_pixel_TILES.txt", "w");
+  // if (!file)
+  // {
+  //   perror("Erro ao criar arquivo.\n");
+  //   exit(1);
+  // }
 
   for (int n = 0; n < tile->size; n++)
   {
@@ -116,15 +156,22 @@ void rgb_average_tiles(tiles_array *tile, int k, int l, int final_lin, int final
     {
       for (int j = l; j < final_col; j++)
       {
-        sum_red += tile->array[n].matrix[i][j].red;
-        sum_green += tile->array[n].matrix[i][j].green;
-        sum_blue += tile->array[n].matrix[i][j].blue;
+        red = tile->array[n].matrix[i][j].red;
+        green = tile->array[n].matrix[i][j].green;
+        blue = tile->array[n].matrix[i][j].blue;
+
+        sum_red = sum_red + red;
+        sum_green = sum_green + green;
+        sum_blue = sum_blue + blue;
       }
     }
-    tile->array[n].pixel_average_color.red = sum_red / (final_col * final_lin);
-    tile->array[n].pixel_average_color.green = sum_green / (final_col * final_lin);
-    tile->array[n].pixel_average_color.blue = sum_blue / (final_col * final_lin);
+    tile->array[n].pixel_average_color->red = sum_red / (final_col * final_lin * CORRECTION_TILE);
+    tile->array[n].pixel_average_color->green = sum_green / (final_col * final_lin * CORRECTION_TILE);
+    tile->array[n].pixel_average_color->blue = sum_blue / (final_col * final_lin * CORRECTION_TILE);
+  
+  // fprintf(file, "Red:%i Green:%i Blue:%i\n", tile->array[n].pixel_average_color.red, tile->array[n].pixel_average_color.green, tile->array[n].pixel_average_color.blue);
   }
+  // fclose(file);
 }
 
 void read_image_rgb(FILE *file, image_ppm *image)
@@ -150,6 +197,7 @@ image_ppm *open_image(char *filename)
   image_ppm *image;
   image = image_allocation(1);
   image->type = string_allocation(3);
+  image->pixel_average_color = RGB_pixel_allocation(1);
 
   file = fopen(filename, "r");
   if (!file)
@@ -269,6 +317,14 @@ tiles_array *load_tiles(char *directory)
     exit(1);
   }
 
+  FILE *file;
+  file = fopen("Filename_TILES.txt", "w");
+  if (!file)
+  {
+    perror("Erro ao criar arquivo.\n");
+    exit(1);
+  }
+  
   while (1)
   {
     dir_entry = readdir(dir_stream); // Pega a próxima entrada do diretório
@@ -282,8 +338,9 @@ tiles_array *load_tiles(char *directory)
     strcat(filename, dir_entry->d_name);
 
     array_images->array[array_images->size].type = string_allocation(3);
+    array_images->array[array_images->size].pixel_average_color = RGB_pixel_allocation(1);
     open_tile(filename, array_images);
-
+    fprintf(file, "Filename %s Posição: %i\n", filename, array_images->size);
     array_images->size++;
     if (array_images->size >= MAX_ARRAY * mult)
     {
@@ -291,19 +348,20 @@ tiles_array *load_tiles(char *directory)
       array_images->array = realloc(array_images->array, sizeof(image_ppm) * (MAX_ARRAY * mult));
     }
   }
+  fclose(file);
   (void)closedir(dir_stream);
   return array_images;
 }
 
-float delta_c_calculation(pixel media_tile, pixel media_image)
+float delta_c_calculation(pixel* media_tile, pixel* media_image)
 {
   int red_delta, blue_delta, green_delta;
   float R, delta_c;
   
-  red_delta = media_tile.red - media_image.red;
-  green_delta = media_tile.green - media_image.green;
-  blue_delta = media_tile.blue - media_image.blue;
-  R = (media_image.red + media_tile.red) / 2;
+  red_delta = media_tile->red - media_image->red;
+  green_delta = media_tile->green - media_image->green;
+  blue_delta = media_tile->blue - media_image->blue;
+  R = (media_image->red + media_tile->red) / 2;
 
   delta_c = sqrt( ((2 + (R/256))*pow(red_delta,2)) + (4*pow(green_delta,2)) + ((2 + ((255 - R)/256)) * pow(blue_delta,2)) );
 
@@ -347,7 +405,7 @@ image_ppm *compare(image_ppm *image, tiles_array *tiles)
   // Inicializa informações para o arquivo de saída image_out
   image_ppm *image_out;
   image_out = image_allocation(1);
-  image_out->type = string_allocation(2);
+  image_out->type = string_allocation(3);
   image_out->matrix = matrix_allocation(image->width, image->height);
 
   strcpy(image_out->type, image->type);

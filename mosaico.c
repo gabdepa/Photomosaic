@@ -46,17 +46,17 @@ int main(int argc, char **argv)
 
   if (!image_flag)
   {
-    image = string_allocation(WIDTH_MAX);
+    image = string_allocation(256);
     strcpy(image, "./fotos/zelda.ppm");
   }
   if (!output_flag)
   {
-    output = string_allocation(WIDTH_MAX);
+    output = string_allocation(256);
     strcpy(output, "zelda_out.ppm");
   }
   if (!dir_flag)
   {
-    dir = string_allocation(WIDTH_MAX);
+    dir = string_allocation(256);
     strcpy(dir, "./tiles/");
   }
  
@@ -64,7 +64,6 @@ int main(int argc, char **argv)
   image_ppm *image_in;
   image_in = open_image(image);
   fprintf(stderr, "Imagem Lida! %s\n", image );
-  // create_image_file(image_in, "test.ppm");
 
   tiles_array *tiles;
   tiles = load_tiles(dir);

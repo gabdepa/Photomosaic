@@ -28,7 +28,7 @@ typedef struct image_ppm
   int width;
   int height;
   int max_rgb;
-  pixel pixel_average_color;
+  pixel *pixel_average_color;
   pixel **matrix;
 
 } image_ppm; // Tipo imagem PPM
@@ -62,7 +62,7 @@ void open_tile(char *filename, tiles_array *array_images);
 
 tiles_array *load_tiles(char *directory);
 
-float delta_c_calculation(pixel media_tile, pixel media_image);
+float delta_c_calculation(pixel* media_tile, pixel* media_image);
 
 void color_distance(image_ppm *image_out, image_ppm *image, tiles_array *tile, int line_ini, int col_ini, int line_final, int col_final);
 
