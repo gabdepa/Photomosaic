@@ -60,25 +60,27 @@ int main(int argc, char **argv)
     strcpy(dir, "./tiles/");
   }
  
-  fprintf(stderr, "Abrindo imagem %s\n", image );
+  fprintf(stderr, "Reading Input image %s\n", image );
   image_ppm *image_in;
   image_in = open_image(image);
-  fprintf(stderr, "Imagem Lida! %s\n", image );
+  fprintf(stderr, "Image %s read\n", image );
+  fprintf(stderr, "Image format is %s, size %ix%i pixels\n", image_in->type, image_in->width, image_in->height);
+
 
   tiles_array *tiles;
   tiles = load_tiles(dir);
-  fprintf(stderr, "\nCarregando pastilhas do dir %s\n", dir );
-
-  fprintf(stderr, "\nCalculando media do bloco de cor das pastilhas do dir %s\n", dir );
-  
+  fprintf(stderr, "\nReading tiles from %s\n", dir );
+  fprintf(stderr, "%i tiles read \n", tiles->size );
+  fprintf(stderr, "Tiles size is %ix%i \n", tiles->array[0].width, tiles->array[0].height );
+  fprintf(stderr, "\nCalculating tiles's average colors");
   for( int n = 0; n < tiles->size; n++ )
     rgb_average_tiles(tiles, 0, 0, tiles->array[n].height, tiles->array[n].width, n);
 
-  fprintf(stderr, "\nComparando %s com pastilhas do dir %s\n", image, dir );
+  fprintf(stderr, "\nBuilding Mosaic Image..\n");
   image_ppm *final_image;
   final_image = compare(image_in, tiles);
 
-  fprintf(stderr, "\nCriando imagem final %s...\n", output );
+  fprintf(stderr, "\nWriting %s file...\n", output );
   create_image_file(final_image, output);
 
   free(tiles);
