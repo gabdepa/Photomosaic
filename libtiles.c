@@ -102,12 +102,15 @@ void comments(FILE *file)
 
 void rgb_average_image(image_ppm *image, int k, int l, int final_lin, int final_col)
 {
+  image->pixel_average_color = RGB_pixel_allocation(1);
+
   int sum_red, sum_blue, sum_green, red, green, blue;
   sum_blue = 0;
   sum_green = 0;
   sum_red = 0;
-
+  
   for (int i = k; i < final_lin; i++)
+  {
     for (int j = l; j < final_col; j++)
     {
       red = image->matrix[i][j].red;
@@ -116,62 +119,38 @@ void rgb_average_image(image_ppm *image, int k, int l, int final_lin, int final_
 
       sum_red = sum_red + red;
       sum_green = sum_green + green;
-      sum_blue = sum_green + blue;
+      sum_blue = sum_blue + blue;
     }
+  }
   image->pixel_average_color->red = sum_red / ((final_col - l) * (final_lin - k) * CORRECTION_IMAGE);
   image->pixel_average_color->green = sum_green / ((final_col - l) * (final_lin - k) * CORRECTION_IMAGE);
   image->pixel_average_color->blue = sum_blue / ((final_col - l) * (final_lin - k) * CORRECTION_IMAGE);
   
-  FILE *file;
-  file = fopen("media_pixel_IMAGE.txt", "w");
-  if (!file)
-  {
-    perror("Erro ao criar arquivo.\n");
-    exit(1);
-  }
-  fprintf(file, "Red:%i Green:%i Blue:%i\n", image->pixel_average_color->red, image->pixel_average_color->green, image->pixel_average_color->blue);
-  fclose(file);
-
 }
 
-// CONTÉM ERRO NESSA FUNÇÃO
-void rgb_average_tiles(tiles_array *tile, int k, int l, int final_lin, int final_col)
+void rgb_average_tiles(tiles_array *tile, int k, int l, int final_lin, int final_col, int n)
 {
   int sum_red, sum_blue, sum_green, red, green, blue;
   sum_red = 0;
   sum_green = 0;
   sum_blue = 0;  
 
-  // FILE *file;
-  // file = fopen("media_pixel_TILES.txt", "w");
-  // if (!file)
-  // {
-  //   perror("Erro ao criar arquivo.\n");
-  //   exit(1);
-  // }
-
-  for (int n = 0; n < tile->size; n++)
+  for (int i = k; i < final_lin; i++)
   {
-    for (int i = k; i < final_lin; i++)
+    for (int j = l; j < final_col; j++)
     {
-      for (int j = l; j < final_col; j++)
-      {
-        red = tile->array[n].matrix[i][j].red;
-        green = tile->array[n].matrix[i][j].green;
-        blue = tile->array[n].matrix[i][j].blue;
+      red = tile->array[n].matrix[i][j].red;
+      green = tile->array[n].matrix[i][j].green;
+      blue = tile->array[n].matrix[i][j].blue;
 
-        sum_red = sum_red + red;
-        sum_green = sum_green + green;
-        sum_blue = sum_blue + blue;
-      }
+      sum_red = sum_red + red;
+      sum_green = sum_green + green;
+      sum_blue = sum_blue + blue;
     }
-    tile->array[n].pixel_average_color->red = sum_red / (final_col * final_lin * CORRECTION_TILE);
-    tile->array[n].pixel_average_color->green = sum_green / (final_col * final_lin * CORRECTION_TILE);
-    tile->array[n].pixel_average_color->blue = sum_blue / (final_col * final_lin * CORRECTION_TILE);
-  
-  // fprintf(file, "Red:%i Green:%i Blue:%i\n", tile->array[n].pixel_average_color.red, tile->array[n].pixel_average_color.green, tile->array[n].pixel_average_color.blue);
   }
-  // fclose(file);
+  tile->array[n].pixel_average_color->red = sum_red / (final_col * final_lin * CORRECTION_TILE);
+  tile->array[n].pixel_average_color->green = sum_green / (final_col * final_lin * CORRECTION_TILE);
+  tile->array[n].pixel_average_color->blue = sum_blue / (final_col * final_lin * CORRECTION_TILE);
 }
 
 void read_image_rgb(FILE *file, image_ppm *image)
@@ -197,7 +176,6 @@ image_ppm *open_image(char *filename)
   image_ppm *image;
   image = image_allocation(1);
   image->type = string_allocation(3);
-  image->pixel_average_color = RGB_pixel_allocation(1);
 
   file = fopen(filename, "r");
   if (!file)
@@ -226,8 +204,8 @@ image_ppm *open_image(char *filename)
     exit(1);
   }
   comments(file);
-  image->matrix = matrix_allocation(image->width, image->height);
 
+  image->matrix = matrix_allocation(image->width, image->height);
   if (strcmp(image->type, "P6") == 0)
   {
     if (fread(image->matrix[0], image->width * 3, image->height, file) != image->height)
@@ -246,7 +224,7 @@ image_ppm *open_image(char *filename)
 void open_tile(char *filename, tiles_array *array_images)
 {
   FILE *file;
-
+  
   file = fopen(filename, "r");
   if (!file)
   {
@@ -300,8 +278,8 @@ tiles_array *load_tiles(char *directory)
 {
   tiles_array *array_images;
   array_images = tiles_array_allocation(1);
-  array_images->size = 0;
   array_images->array = image_allocation(MAX_ARRAY);
+  array_images->size = 0;
 
   DIR *dir_stream;
   struct dirent *dir_entry;
@@ -314,14 +292,6 @@ tiles_array *load_tiles(char *directory)
   if (!dir_stream)
   {
     perror("Erro ao abrir diretório de pastilhas.\n");
-    exit(1);
-  }
-
-  FILE *file;
-  file = fopen("Filename_TILES.txt", "w");
-  if (!file)
-  {
-    perror("Erro ao criar arquivo.\n");
     exit(1);
   }
   
@@ -340,7 +310,6 @@ tiles_array *load_tiles(char *directory)
     array_images->array[array_images->size].type = string_allocation(3);
     array_images->array[array_images->size].pixel_average_color = RGB_pixel_allocation(1);
     open_tile(filename, array_images);
-    fprintf(file, "Filename %s Posição: %i\n", filename, array_images->size);
     array_images->size++;
     if (array_images->size >= MAX_ARRAY * mult)
     {
@@ -348,7 +317,6 @@ tiles_array *load_tiles(char *directory)
       array_images->array = realloc(array_images->array, sizeof(image_ppm) * (MAX_ARRAY * mult));
     }
   }
-  fclose(file);
   (void)closedir(dir_stream);
   return array_images;
 }

@@ -52,7 +52,7 @@ void comments(FILE *file);
 
 void rgb_average_image(image_ppm *image, int k, int l, int final_lin, int final_col);
 
-void rgb_average_tiles(tiles_array *tile, int k, int l, int final_lin, int final_col);
+void rgb_average_tiles(tiles_array *tile, int k, int l, int final_lin, int final_col, int n);
 
 void read_image_rgb(FILE *file, image_ppm *image);
 
