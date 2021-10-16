@@ -47,12 +47,12 @@ int main(int argc, char **argv)
   if (!image_flag)
   {
     image = string_allocation(256);
-    strcpy(image, "./fotos/zelda.ppm");
+    strcpy(image, "/dev/stdin");
   }
   if (!output_flag)
   {
     output = string_allocation(256);
-    strcpy(output, "zelda_out.ppm");
+    strcpy(output, "/dev/stdout");
   }
   if (!dir_flag)
   {
@@ -70,8 +70,10 @@ int main(int argc, char **argv)
   fprintf(stderr, "\nCarregando pastilhas do dir %s\n", dir );
 
   fprintf(stderr, "\nCalculando media do bloco de cor das pastilhas do dir %s\n", dir );
-  rgb_average_tiles(tiles, 0, 0, tiles->array[0].height, tiles->array[0].width);
   
+  for( int n = 0; n < tiles->size; n++ )
+    rgb_average_tiles(tiles, 0, 0, tiles->array[n].height, tiles->array[n].width, n);
+
   fprintf(stderr, "\nComparando %s com pastilhas do dir %s\n", image, dir );
   image_ppm *final_image;
   final_image = compare(image_in, tiles);
@@ -79,13 +81,14 @@ int main(int argc, char **argv)
   fprintf(stderr, "\nCriando imagem final %s...\n", output );
   create_image_file(final_image, output);
 
-  free(image);
-  free(dir);
-  free(output);
-
   free(tiles);
+  // free(tiles->array);
   free(image_in);
+  // free(image_in->matrix);
+  // free(image_in->pixel_average_color);
   free(final_image);
+  // free(final_image->matrix);
+  // free(final_image->pixel_average_color);
 
   return 0;
 }
