@@ -11,7 +11,7 @@ SET(GCC_COVERAGE_COMPILE_FLAGS "-Wall -Werror -g")
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 #Can manually add the sources using the set command as follows:
-#set(SOURCES /home/grpp/UFPR/Periodo_Especial/Prog_II/fotomosaico/mosaico.c /home/grpp/UFPR/Periodo_Especial/Prog_II/fotomosaico/libtiles.c /home/grpp/UFPR/Periodo_Especial/Prog_II/fotomosaico/libtiles.h)
+#set(SOURCES /home/grpp/UFPR/Periodo_Especial/Prog_II/fotomosaico/src/mosaico.c /home/grpp/UFPR/Periodo_Especial/Prog_II/fotomosaico/src/libtiles.c /home/grpp/UFPR/Periodo_Especial/Prog_II/fotomosaico/src/libtiles.h)
 
 #However, the file(GLOB...) allows for wildcard additions:
 file(GLOB SOURCES "/home/grpp/UFPR/Periodo_Especial/Prog_II/fotomosaico/*.c" "/home/grpp/UFPR/Periodo_Especial/Prog_II/fotomosaico/*.h")
